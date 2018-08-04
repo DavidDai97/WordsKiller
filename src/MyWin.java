@@ -1,4 +1,5 @@
 import javax.swing.*;
+import javax.xml.crypto.Data;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -11,6 +12,7 @@ public class MyWin extends WindowAdapter {
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.ERROR_MESSAGE,null,null,null);
         System.out.println(option);
         if(option == 0) {
+            DataManagement.outputRecords();
             System.exit(0);
         }
     }

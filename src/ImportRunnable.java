@@ -14,25 +14,24 @@ public class ImportRunnable implements Runnable{
 
     @Override
     public void run() {
-//        try {
+        if(importFilesArr[0].equals("Clear Records")){
+            int option = JOptionPane.showOptionDialog(null, "Are you sure to clear all the record? This process cannot be undo.","Exit",
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.ERROR_MESSAGE,null,null,null);
+            if(option == 0) {
+                DataManagement.clearRecord();
+            }
+            return;
+        }
         MainGUI.progressLabel.setText("Current File: 0/" + importFilesArr.length);
-            MainGUI.processBar.setBackground(Color.pink);
-            MainGUI.processBar.setValue(0);
-//            ExcelProcess.processData(poFileName, masterFileName);
-            MainGUI.processBar.setValue(100);
-            JOptionPane.showMessageDialog(null, "Process finished", "Progress",
-                    JOptionPane.WARNING_MESSAGE);
+        MainGUI.processBar.setBackground(Color.pink);
+        MainGUI.processBar.setValue(0);
+        DataManagement.importWords(importFilesArr);
+        MainGUI.processBar.setValue(100);
+        JOptionPane.showMessageDialog(null, "Process finished", "Progress",
+                JOptionPane.WARNING_MESSAGE);
         MainGUI.processBar.setValue(0);
         MainGUI.processBar.setBackground(Color.BLACK);
-//        }
-//        catch (FileNotFoundException e){
-//            System.out.println("Error: " + e.toString());
-//            JOptionPane.showMessageDialog(null, "Err: File not found", "Error message", JOptionPane.ERROR_MESSAGE);
-//        }
-//        catch (Exception e){
-//            System.out.println(e.toString());
-//            JOptionPane.showMessageDialog(null, "Unknown Error", "Error message", JOptionPane.ERROR_MESSAGE);
-//        }
+        MainGUI.progressLabel.setText("Current File: 0/0");
     }
 
 }

@@ -15,6 +15,7 @@ public class MainGUI {
     public static  JProgressBar processBar;
 
     public static void main(String[] args){
+        DataManagement.readExistedWords();
         createMainFrame();
     }
     private static void createMainFrame(){
@@ -52,6 +53,9 @@ public class MainGUI {
         File f = new File(directory);
         File[] files = f.listFiles();
         if(files == null) return;
+        if(!originalListArr.contains("Clear Records")){
+            originalListArr.add("Clear Records");
+        }
         for (int i = 0; i < files.length; i++) {
             if(files[i].getName().contains("OriginalList") && !originalListArr.contains(files[i].getName())){
                 originalListArr.add(files[i].getName());
