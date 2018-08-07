@@ -1,6 +1,5 @@
 import javax.swing.*;
 import java.awt.*;
-import java.io.FileNotFoundException;
 
 public class ImportRunnable implements Runnable{
     private String[] importFilesArr;

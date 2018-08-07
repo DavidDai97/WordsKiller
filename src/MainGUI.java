@@ -1,7 +1,9 @@
 import javax.swing.*;
+import javax.swing.text.SimpleAttributeSet;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.event.*;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
@@ -11,11 +13,16 @@ import java.util.concurrent.locks.LockSupport;
 public class MainGUI {
     private static JFrame mainFrame;
     public static ArrayList<String> originalListArr = new ArrayList<>();
-    public static JLabel progressLabel;
-    public static  JProgressBar processBar;
+    public static ArrayList<String> unfinishedChapters = new ArrayList<>();
+    public static JLabel progressLabel, learntProgressLabel, testProgressLabel, testScoreLabel;
+    public static  JProgressBar processBar, learntProgress, testProgress;
+    public static int spacePressedCnt = 0;
 
+    private static boolean needRefresh = false;
     public static void main(String[] args){
+        getFileList("../TempFiles", "Chapter");
         DataManagement.readExistedWords();
+        DataManagement.initializeFormat();
         createMainFrame();
     }
     private static void createMainFrame(){
@@ -29,6 +36,12 @@ public class MainGUI {
         JButton manageButton = new JButton("Manage Words");
         learnButton.setFont(new Font("Arial", Font.BOLD, 18));
         manageButton.setFont(new Font("Arial", Font.BOLD, 18));
+        learnButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                modeSelection();
+            }
+        });
         manageButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -39,6 +52,13 @@ public class MainGUI {
         mainPanel.add(manageButton);
         mainFrame.add(mainPanel);
         mainFrame.setVisible(true);
+        if(unfinishedChapters.size() != 0){
+            int option = JOptionPane.showOptionDialog(null, "You have unfinished progress, do you want to continue","Unfinished",
+                    JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE,null,new String[]{"Continue", "Later"},null);
+            if(option == 0){
+                // TODO Directly start learning mode or test mode according to file name
+            }
+        }
     }
     private static JFrame createFrame(int x, int y, int width, int height, java.awt.Color colourUse, String title, LayoutManager layoutUse){
         JFrame resultFrame = new JFrame(title);
@@ -49,21 +69,28 @@ public class MainGUI {
         resultFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
         return resultFrame;
     }
-    private static void getFileList(String directory) {
+    private static void getFileList(String directory, String searchString){
+        ArrayList<String> filesList;
+        if(searchString.equals("Chapter")){
+            filesList = unfinishedChapters;
+        }
+        else{
+            filesList = originalListArr;
+        }
         File f = new File(directory);
         File[] files = f.listFiles();
         if(files == null) return;
-        if(!originalListArr.contains("Clear Records")){
-            originalListArr.add("Clear Records");
-        }
         for (int i = 0; i < files.length; i++) {
-            if(files[i].getName().contains("OriginalList") && !originalListArr.contains(files[i].getName())){
-                originalListArr.add(files[i].getName());
+            if(files[i].getName().contains(searchString) && !filesList.contains(files[i].getName())){
+                filesList.add(files[i].getName());
             }
         }
     }
     private static void manageWords(){
-        getFileList("../OriginalLists");
+        if(!originalListArr.contains("Clear Records")){
+            originalListArr.add("Clear Records");
+        }
+        getFileList("../OriginalLists", "OriginalList");
         JFrame importFrame = createFrame(450, 100, 450, 250, Color.lightGray,
                 "Import Files", new GridLayout(3, 1, 0, 5));
         importFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -104,4 +131,516 @@ public class MainGUI {
         importFrame.add(processBar);
         importFrame.setVisible(true);
     }
+    private static void modeSelection(){
+        getFileList("../TempFiles", "Chapter");
+        JFrame modeSelectionFrame = createFrame(450, 100, 400, 350, Color.lightGray,
+                "Learning Mode Selection", new GridLayout(1, 2, 15, 0));
+        modeSelectionFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        ((JPanel)modeSelectionFrame.getContentPane()).setBorder(BorderFactory.createEmptyBorder(25, 20, 25, 20));
+        String[] chaptersRecorded;
+        if(DataManagement.hardWords.size() != 0){
+            chaptersRecorded = new String[DataManagement.chaptersRecorded.size()+1];
+            chaptersRecorded[0] = "Hard Words";
+            for(int i = 0; i < DataManagement.chaptersRecorded.size(); i++){
+                chaptersRecorded[i+1] = "Chapter " + DataManagement.chaptersRecorded.get(i);
+            }
+        }
+        else{
+            chaptersRecorded = new String[DataManagement.chaptersRecorded.size()];
+            for(int i = 0; i < DataManagement.chaptersRecorded.size(); i++){
+                chaptersRecorded[i] = "Chapter " + DataManagement.chaptersRecorded.get(i);
+            }
+        }
+        JList chaptersList = new JList(chaptersRecorded);
+        chaptersList.setVisibleRowCount(10);
+        JScrollPane chaptersPane = new JScrollPane(chaptersList);
+        modeSelectionFrame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowActivated(WindowEvent e){
+                System.out.println("Focused");
+                if(needRefresh) {
+                    modeSelectionFrame.dispose();
+                    modeSelection();
+                    needRefresh = false;
+                }
+            }
+        });
+        JButton learnModeButton = new JButton("Learn Mode");
+        learnModeButton.setFont(new Font("Arial", Font.BOLD, 18));
+        learnModeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                List<String> chaptersLearn = chaptersList.getSelectedValuesList();
+                if(chaptersLearn.size() == 0) return;
+                String[] chapters = chaptersLearn.toArray(new String[0]);
+                LearnModeRunnable learnRunnable = new LearnModeRunnable(0, chapters);
+                Thread learnThread = new Thread(learnRunnable);
+                learnThread.start();
+            }
+        });
+        JButton testModeButton = new JButton("Test Mode");
+        testModeButton.setFont(new Font("Arial", Font.BOLD, 18));
+        testModeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                List<String> chaptersLearn = chaptersList.getSelectedValuesList();
+                if(chaptersLearn.size() == 0) return;
+//                if(chaptersRecorded[0].contains("Hard") && !chaptersLearn.get(0).contains("Hard")){
+//                    chaptersLearn.add("Hard Words");
+//                }
+                String[] chapters = chaptersLearn.toArray(new String[0]);
+                LearnModeRunnable learnRunnable = new LearnModeRunnable(1, chapters);
+                Thread learnThread = new Thread(learnRunnable);
+                learnThread.start();
+            }
+        });
+        JButton reviewModeButton = new JButton("Review Mode");
+        reviewModeButton.setFont(new Font("Arial", Font.BOLD, 18));
+        reviewModeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                startReview();
+            }
+        });
+        JButton continueLearnModeButton = new JButton("Continue Learn");
+        continueLearnModeButton.setFont(new Font("Arial", Font.BOLD, 18));
+        continueLearnModeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // TODO Continue Learn Mode Func
+            }
+        });
+        JButton continueTestModeButton = new JButton("Continue Test");
+        continueTestModeButton.setFont(new Font("Arial", Font.BOLD, 18));
+        continueTestModeButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                // TODO Continue Test Mode Func
+            }
+        });
+        JPanel buttonPanel = new JPanel(new GridLayout(5, 1, 0, 15));
+        buttonPanel.add(learnModeButton);
+        buttonPanel.add(testModeButton);
+        buttonPanel.add(reviewModeButton);
+        buttonPanel.add(continueLearnModeButton);
+        buttonPanel.add(continueTestModeButton);
+        modeSelectionFrame.add(chaptersPane);
+        modeSelectionFrame.add(buttonPanel);
+        modeSelectionFrame.setVisible(true);
+    }
+    public static void startLearn(ArrayList<String> learningGroup){
+        needRefresh = true;
+        JFrame learnModeFrame = createFrame(450, 100, 400, 500, Color.lightGray,
+                "Learning Mode", new GridLayout(2, 1, 0, 20));
+        learnModeFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        learnModeFrame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                int option = JOptionPane.showOptionDialog(null, "You haven't finished the current progress, do you want to save it, and continue next time?","Save",
+                        JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.ERROR_MESSAGE,null,new String[]{"Save and Quit", "Direct Quit", "Cancel"},null);
+                if(option == 0){
+                    // TODO save progress
+                    JOptionPane.showMessageDialog(null, "Progress saved", "Message", JOptionPane.PLAIN_MESSAGE, null);
+                    learnModeFrame.dispose();
+                }
+                else if(option == 1){
+                    learnModeFrame.dispose();
+                }
+            }
+        });
+        ((JPanel)learnModeFrame.getContentPane()).setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
+
+        SimpleAttributeSet bSet = new SimpleAttributeSet();
+        StyleConstants.setAlignment(bSet, StyleConstants.ALIGN_CENTER);
+        StyleConstants.setFontFamily(bSet, "Arial");
+        StyleConstants.setFontSize(bSet, 24);
+
+        JTextPane definitionArea = new JTextPane();
+        definitionArea.setEditable(false);
+        definitionArea.setText(LearnMode.learning(learningGroup));
+        StyledDocument doc = definitionArea.getStyledDocument();
+        doc.setParagraphAttributes(0, doc.getLength(), bSet, false);
+        JScrollPane definitionScroll = new JScrollPane(definitionArea);
+
+        JPanel bottomTopPanel = new JPanel(new GridLayout(1, 2, 25, 0));
+        JButton correctButton = new JButton("Correct");
+        correctButton.setFont(new Font("Arial", Font.BOLD, 14));
+        JButton wrongButton = new JButton("Wrong");
+        wrongButton.setFont(new Font("Arial", Font.BOLD, 14));
+        bottomTopPanel.add(correctButton);
+        bottomTopPanel.add(wrongButton);
+        JPanel bottomBottomPanel = new JPanel(new GridLayout(2, 1, 0, 15));
+        learntProgressLabel = new JLabel("Learning progress 0/" + learningGroup.size());
+        wrongButton.setFont(new Font("Arial", Font.BOLD, 22));
+        learntProgress = new JProgressBar();
+        learntProgress.setStringPainted(true);
+        learntProgress.setMinimum(0);
+        learntProgress.setMaximum(learningGroup.size());
+        learntProgress.setBackground(Color.RED);
+        learntProgress.setValue(0);
+        learntProgress.setFont(new Font("Arial", Font.BOLD, 22));
+        learntProgress.setForeground(Color.GREEN);
+        bottomBottomPanel.add(learntProgressLabel);
+        bottomBottomPanel.add(learntProgress);
+        JPanel bottomPanel = new JPanel(new GridLayout(2, 1, 0, 15));
+        bottomPanel.add(bottomTopPanel);
+        bottomPanel.add(bottomBottomPanel);
+        learnModeFrame.add(definitionScroll);
+        learnModeFrame.add(bottomPanel);
+        spacePressedCnt = 0;
+        correctButton.setEnabled(false);
+        wrongButton.setEnabled(false);
+        correctButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e){
+                spacePressedCnt++;
+                String nextWord = LearnMode.learnNext(true);
+                if(nextWord == null){
+                    startTest(LearnMode.testWords);
+                    learnModeFrame.dispose();
+                    return;
+                }
+                definitionArea.setText(nextWord);
+                correctButton.setEnabled(false);
+                wrongButton.setEnabled(false);
+            }
+        });
+        wrongButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e){
+                spacePressedCnt++;
+                definitionArea.setText(LearnMode.learnNext(false));
+                correctButton.setEnabled(false);
+                wrongButton.setEnabled(false);
+            }
+        });
+        definitionArea.addKeyListener(new KeyAdapter(){
+            public void keyPressed(KeyEvent e){
+                char charA=e.getKeyChar();
+                if(charA == ' '){
+                    spacePressedCnt++;
+                    definitionArea.setText(LearnMode.flip(spacePressedCnt));
+                    if(spacePressedCnt%2 == 0){
+                        correctButton.setEnabled(false);
+                        wrongButton.setEnabled(false);
+                    }
+                    else{
+                        correctButton.setEnabled(true);
+                        wrongButton.setEnabled(true);
+                    }
+                }
+                else if(charA == '1' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    String nextWord = LearnMode.learnNext(true);
+                    if(nextWord == null){
+                        startTest(LearnMode.testWords);
+                        learnModeFrame.dispose();
+                        return;
+                    }
+                    definitionArea.setText(nextWord);
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                else if(charA == '2' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    definitionArea.setText(LearnMode.learnNext(false));
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                System.out.println("Key <" + charA + "> has been pressed");
+            }
+        });
+        bottomPanel.addKeyListener(new KeyAdapter(){
+            public void keyPressed(KeyEvent e){
+                char charA=e.getKeyChar();
+                if(charA == ' '){
+                    spacePressedCnt++;
+                    definitionArea.setText(LearnMode.flip(spacePressedCnt));
+                    if(spacePressedCnt%2 == 0){
+                        correctButton.setEnabled(false);
+                        wrongButton.setEnabled(false);
+                    }
+                    else{
+                        correctButton.setEnabled(true);
+                        wrongButton.setEnabled(true);
+                    }
+                }
+                else if(charA == '1' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    String nextWord = LearnMode.learnNext(true);
+                    if(nextWord == null){
+                        startTest(LearnMode.testWords);
+                        learnModeFrame.dispose();
+                        return;
+                    }
+                    definitionArea.setText(nextWord);
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                else if(charA == '2' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    definitionArea.setText(LearnMode.learnNext(false));
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                System.out.println("Key <" + charA + "> has been pressed");
+            }
+        });
+        learnModeFrame.addKeyListener(new KeyAdapter(){
+            public void keyPressed(KeyEvent e){
+                char charA=e.getKeyChar();
+                if(charA == ' '){
+                    spacePressedCnt++;
+                    definitionArea.setText(LearnMode.flip(spacePressedCnt));
+                    if(spacePressedCnt%2 == 0){
+                        correctButton.setEnabled(false);
+                        wrongButton.setEnabled(false);
+                    }
+                    else{
+                        correctButton.setEnabled(true);
+                        wrongButton.setEnabled(true);
+                    }
+                }
+                else if(charA == '1' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    String nextWord = LearnMode.learnNext(true);
+                    if(nextWord == null){
+                        startTest(LearnMode.testWords);
+                        learnModeFrame.dispose();
+                        return;
+                    }
+                    definitionArea.setText(nextWord);
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                else if(charA == '2' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    definitionArea.setText(LearnMode.learnNext(false));
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                System.out.println("Key <" + charA + "> has been pressed");
+            }
+        });
+        learnModeFrame.setVisible(true);
+    }
+    public static void startTest(ArrayList<String> learningGroup){
+        needRefresh = true;
+        JFrame testModeFrame = createFrame(450, 100, 400, 500, Color.lightGray,
+                "Testing Mode", new GridLayout(2, 1, 0, 20));
+        testModeFrame.setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
+        testModeFrame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                int option = JOptionPane.showOptionDialog(null, "You haven't finished the current progress, do you want to save it, and continue next time?","Save",
+                        JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.ERROR_MESSAGE,null,new String[]{"Save and Quit", "Direct Quit", "Cancel"},null);
+                if(option == 0){
+                    // TODO save progress
+                    JOptionPane.showMessageDialog(null, "Progress saved", "Message", JOptionPane.PLAIN_MESSAGE, null);
+                    testModeFrame.dispose();
+                }
+                else if(option == 1){
+                    testModeFrame.dispose();
+                }
+            }
+        });
+        ((JPanel)testModeFrame.getContentPane()).setBorder(BorderFactory.createEmptyBorder(25, 25, 25, 25));
+
+        SimpleAttributeSet bSet = new SimpleAttributeSet();
+        StyleConstants.setAlignment(bSet, StyleConstants.ALIGN_CENTER);
+        StyleConstants.setFontFamily(bSet, "Arial");
+        StyleConstants.setFontSize(bSet, 24);
+
+        JTextPane definitionArea = new JTextPane();
+        definitionArea.setEditable(false);
+        definitionArea.setText(LearnMode.testing(learningGroup));
+        StyledDocument doc = definitionArea.getStyledDocument();
+        doc.setParagraphAttributes(0, doc.getLength(), bSet, false);
+        JScrollPane definitionScroll = new JScrollPane(definitionArea);
+
+        JPanel bottomTopPanel = new JPanel(new GridLayout(1, 2, 25, 0));
+        JButton correctButton = new JButton("Correct");
+        correctButton.setFont(new Font("Arial", Font.BOLD, 14));
+        JButton wrongButton = new JButton("Wrong");
+        wrongButton.setFont(new Font("Arial", Font.BOLD, 14));
+        bottomTopPanel.add(correctButton);
+        bottomTopPanel.add(wrongButton);
+        JPanel bottomBottomPanel = new JPanel(new GridLayout(3, 1, 0, 15));
+        testProgressLabel = new JLabel("Test progress: 0 tested, " + learningGroup.size() + " remains.");
+        testProgressLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        testScoreLabel = new JLabel("Current score: 0 Correct, 0 Wrong.");
+        testScoreLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        wrongButton.setFont(new Font("Arial", Font.BOLD, 22));
+        testProgress = new JProgressBar();
+        testProgress.setStringPainted(true);
+        testProgress.setMinimum(0);
+        testProgress.setMaximum(learningGroup.size());
+        testProgress.setBackground(Color.RED);
+        testProgress.setValue(0);
+        testProgress.setFont(new Font("Arial", Font.BOLD, 22));
+        testProgress.setForeground(Color.GREEN);
+        bottomBottomPanel.add(testScoreLabel);
+        bottomBottomPanel.add(testProgressLabel);
+        bottomBottomPanel.add(testProgress);
+
+        JPanel bottomPanel = new JPanel(new GridLayout(2, 1, 0, 15));
+        bottomPanel.add(bottomTopPanel);
+        bottomPanel.add(bottomBottomPanel);
+        testModeFrame.add(definitionScroll);
+        testModeFrame.add(bottomPanel);
+        spacePressedCnt = 0;
+        correctButton.setEnabled(false);
+        wrongButton.setEnabled(false);
+        correctButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e){
+                spacePressedCnt++;
+                String nextWord = LearnMode.testNext(true);
+                if(nextWord == null){
+                    testModeFrame.dispose();
+                    return;
+                }
+                definitionArea.setText(nextWord);
+                correctButton.setEnabled(false);
+                wrongButton.setEnabled(false);
+            }
+        });
+        wrongButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e){
+                spacePressedCnt++;
+                String nextWord = LearnMode.testNext(false);
+                if(nextWord == null){
+                    testModeFrame.dispose();
+                    return;
+                }
+                definitionArea.setText(nextWord);
+                correctButton.setEnabled(false);
+                wrongButton.setEnabled(false);
+            }
+        });
+        definitionArea.addKeyListener(new KeyAdapter(){
+            public void keyPressed(KeyEvent e){
+                char charA=e.getKeyChar();
+                if(charA == ' '){
+                    spacePressedCnt++;
+                    definitionArea.setText(LearnMode.testFlip(spacePressedCnt));
+                    if(spacePressedCnt%2 == 0){
+                        correctButton.setEnabled(false);
+                        wrongButton.setEnabled(false);
+                    }
+                    else{
+                        correctButton.setEnabled(true);
+                        wrongButton.setEnabled(true);
+                    }
+                }
+                else if(charA == '1' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    String nextWord = LearnMode.testNext(true);
+                    if(nextWord == null){
+                        testModeFrame.dispose();
+                        return;
+                    }
+                    definitionArea.setText(nextWord);
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                else if(charA == '2' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    String nextWord = LearnMode.testNext(false);
+                    if(nextWord == null){
+                        testModeFrame.dispose();
+                        return;
+                    }
+                    definitionArea.setText(nextWord);
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                System.out.println("Key <" + charA + "> has been pressed");
+            }
+        });
+        bottomPanel.addKeyListener(new KeyAdapter(){
+            public void keyPressed(KeyEvent e){
+                char charA=e.getKeyChar();
+                if(charA == ' '){
+                    spacePressedCnt++;
+                    definitionArea.setText(LearnMode.testFlip(spacePressedCnt));
+                    if(spacePressedCnt%2 == 0){
+                        correctButton.setEnabled(false);
+                        wrongButton.setEnabled(false);
+                    }
+                    else{
+                        correctButton.setEnabled(true);
+                        wrongButton.setEnabled(true);
+                    }
+                }
+                else if(charA == '1' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    String nextWord = LearnMode.testNext(true);
+                    if(nextWord == null){
+                        testModeFrame.dispose();
+                        return;
+                    }
+                    definitionArea.setText(nextWord);
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                else if(charA == '2' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    String nextWord = LearnMode.testNext(false);
+                    if(nextWord == null){
+                        testModeFrame.dispose();
+                        return;
+                    }
+                    definitionArea.setText(nextWord);
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                System.out.println("Key <" + charA + "> has been pressed");
+            }
+        });
+        testModeFrame.addKeyListener(new KeyAdapter(){
+            public void keyPressed(KeyEvent e){
+                char charA=e.getKeyChar();
+                if(charA == ' '){
+                    spacePressedCnt++;
+                    definitionArea.setText(LearnMode.testFlip(spacePressedCnt));
+                    if(spacePressedCnt%2 == 0){
+                        correctButton.setEnabled(false);
+                        wrongButton.setEnabled(false);
+                    }
+                    else{
+                        correctButton.setEnabled(true);
+                        wrongButton.setEnabled(true);
+                    }
+                }
+                else if(charA == '1' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    String nextWord = LearnMode.testNext(true);
+                    if(nextWord == null){
+                        return;
+                    }
+                    definitionArea.setText(nextWord);
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                else if(charA == '2' && spacePressedCnt%2 == 1){
+                    spacePressedCnt++;
+                    String nextWord = LearnMode.testNext(false);
+                    if(nextWord == null){
+                        return;
+                    }
+                    definitionArea.setText(nextWord);
+                    correctButton.setEnabled(false);
+                    wrongButton.setEnabled(false);
+                }
+                System.out.println("Key <" + charA + "> has been pressed");
+            }
+        });
+        testModeFrame.setVisible(true);
+    }
+    private static void startReview(){
+
+    }
+
 }

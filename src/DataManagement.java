@@ -1,3 +1,4 @@
+import java.awt.*;
 import java.io.*;
 
 import jxl.*;
@@ -6,23 +7,44 @@ import jxl.format.Colour;
 import jxl.format.VerticalAlignment;
 import jxl.read.biff.BiffException;
 import jxl.write.*;
+import jxl.write.Label;
+import jxl.write.Number;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Queue;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class DataManagement {
     private static String wordTrackingPath = "../LearningStatus/WordsTrackingList" + ".xls";
-    public static Map<String, Words> wordsDictionary= new HashMap<>();
-    private static final int CHAPTERCOL = 0;
-    private static final int APPEARANCENUMCOL = 1;
-    private static final int WORDSCOL = 2;
-    private static final int DEFINITIONCOL = 3;
-    private static final int CORRECTNUMCOL = 4;
-    private static final int WRONGNUMCOL = 5;
+
+    public static Map<String, Words> wordsDictionary = new HashMap<>();
+    public static ArrayList<String> hardWords = new ArrayList<>();
+    public static ArrayList<String> mediumWords = new ArrayList<>();
+    public static ArrayList<String> easyWords = new ArrayList<>();
+    public static ArrayList<Integer> chaptersRecorded = new ArrayList<>();
+
+    private static final int GROUPCOL = 0;
+    private static final int CHAPTERCOL = 1;
+    private static final int APPEARANCENUMCOL = 2;
+    private static final int WORDSCOL = 3;
+    private static final int DEFINITIONCOL = 4;
+    private static final int CORRECTNUMCOL = 5;
+    private static final int WRONGNUMCOL = 6;
+
+    private static WritableCellFormat titleFormat;
+    private static WritableCellFormat normalFormat;
+    private static WritableCellFormat definitionFormat;
+    private static WritableCellFormat easyFormat;
+    private static WritableCellFormat mediumFormat;
+    private static WritableCellFormat hardFormat;
 
     public static void main(String[] args){
-        readExistedWords();
+        test();
+    }
+
+    private static void test(){
+        ArrayList<Integer> temp = new ArrayList< >();
+        temp.add(10);
+        System.out.println(temp.contains(10));
     }
 
     public static void readExistedWords(){
@@ -42,10 +64,24 @@ public class DataManagement {
                 int[] chapters = new int[chaptersArr.length];
                 for(int j = 0; j < chapters.length; j++){
                     chapters[j] = Integer.parseInt(chaptersArr[j]);
+                    if(!chaptersRecorded.contains(chapters[j])){
+                        chaptersRecorded.add(chapters[j]);
+                    }
                 }
                 Words currWordItem = new Words(currWord, currDefinition, chapters, correctNum, wrongNum);
+                if(dataSheet.getCell(GROUPCOL, i).getCellFormat() != null) {
+                    int backGroudColor = dataSheet.getCell(GROUPCOL, i).getCellFormat().getBackgroundColour().getValue();
+                    if (dataSheet.getCell(GROUPCOL, i).getCellFormat().getBackgroundColour().equals(Colour.RED)) {
+                        hardWords.add(currWord);
+                    } else if (dataSheet.getCell(GROUPCOL, i).getCellFormat().getBackgroundColour().equals(Colour.YELLOW)) {
+                        mediumWords.add(currWord);
+                    } else if (dataSheet.getCell(GROUPCOL, i).getCellFormat().getBackgroundColour().equals(Colour.LIGHT_GREEN)) {
+                        easyWords.add(currWord);
+                    }
+                }
                 wordsDictionary.putIfAbsent(currWord, currWordItem);
             }
+            Collections.sort(chaptersRecorded);
         }
         catch(FileNotFoundException e){
             System.out.println("Error: File not existed.");
@@ -60,7 +96,10 @@ public class DataManagement {
 
     private static void importWords(String importFileName, int totalRows){
         File importFile = new File("../OriginalLists/" + importFileName);
-        int chapter = Integer.parseInt(importFileName.substring(13, 14));
+        int chapter = Integer.parseInt(importFileName.substring(13, importFileName.indexOf('.')));
+        if(!chaptersRecorded.contains(chapter)){
+            chaptersRecorded.add(chapter);
+        }
         try {
             InputStream is = new FileInputStream(importFile.getAbsolutePath());
             Workbook wb = Workbook.getWorkbook(is);
@@ -121,8 +160,115 @@ public class DataManagement {
         }
     }
 
-    public static void outputRecords(){
+    public static void initializeFormat(){
+        try{
+            WritableFont titleFont = new WritableFont(WritableFont.ARIAL, 12, WritableFont.BOLD,false);
+            titleFormat = new WritableCellFormat(titleFont);
+            titleFormat.setAlignment(Alignment.CENTRE);
+            titleFormat.setVerticalAlignment(VerticalAlignment.CENTRE);
+            WritableFont myFont = new WritableFont(WritableFont.ARIAL,10, WritableFont.NO_BOLD, false);
+            normalFormat = new WritableCellFormat(myFont);
+            normalFormat.setAlignment(Alignment.CENTRE);
+            normalFormat.setVerticalAlignment(VerticalAlignment.CENTRE);
+            definitionFormat = new WritableCellFormat(myFont);
+            definitionFormat.setAlignment(Alignment.CENTRE);
+            definitionFormat.setVerticalAlignment(VerticalAlignment.CENTRE);
+            definitionFormat.setWrap(true);
+            easyFormat = new WritableCellFormat(myFont);
+            easyFormat.setBackground(Colour.LIGHT_GREEN);
+            mediumFormat = new WritableCellFormat(myFont);
+            mediumFormat.setBackground(Colour.YELLOW);
+            hardFormat = new WritableCellFormat(myFont);
+            hardFormat.setBackground(Colour.RED);
+        }
+        catch(WriteException e){
+            System.out.println("Err: 5, Initialize Error.");
+        }
+    }
 
+    private static int writeCnt = 0;
+    public static void outputRecords(){
+        try{
+            WritableWorkbook outputFile = Workbook.createWorkbook(new File(wordTrackingPath));
+            WritableSheet wordTrackSheet = outputFile.createSheet("Words Record", 0);
+            Label groupTitle = new Label(GROUPCOL, 0, "Difficulty", titleFormat);
+            wordTrackSheet.addCell(groupTitle);
+            wordTrackSheet.setColumnView(GROUPCOL, 3);
+            Label chapterTitle = new Label(CHAPTERCOL, 0, "Chapter", titleFormat);
+            wordTrackSheet.addCell(chapterTitle);
+            wordTrackSheet.setColumnView(CHAPTERCOL, 13);
+            Label appearanceTitle = new Label(APPEARANCENUMCOL, 0, "Frequency", titleFormat);
+            wordTrackSheet.addCell(appearanceTitle);
+            wordTrackSheet.setColumnView(APPEARANCENUMCOL, 13);
+            Label wordsTitle = new Label(WORDSCOL, 0, "Words", titleFormat);
+            wordTrackSheet.addCell(wordsTitle);
+            wordTrackSheet.setColumnView(WORDSCOL, 15);
+            Label definitionTitle = new Label(DEFINITIONCOL, 0, "Definition", titleFormat);
+            wordTrackSheet.addCell(definitionTitle);
+            wordTrackSheet.setColumnView(DEFINITIONCOL, 80);
+            Label correctNumTitle = new Label(CORRECTNUMCOL, 0, "Correct #", titleFormat);
+            wordTrackSheet.addCell(correctNumTitle);
+            wordTrackSheet.setColumnView(CORRECTNUMCOL, 11);
+            Label wrongNumTitle = new Label(WRONGNUMCOL, 0, "Wrong #", titleFormat);
+            wordTrackSheet.addCell(wrongNumTitle);
+            wordTrackSheet.setColumnView(WRONGNUMCOL, 10);
+            Words.familiaritySortWords();
+            for(int i = 0; i < Words.wordsNum(); i++){
+                Words currWord = wordsDictionary.get(Words.getWord(i));
+                int[] currChapters = currWord.getAppearChapters();
+                int currFrequency = currWord.getAppearance();
+                String currChapterString = "";
+                for(int j = 0; j < currFrequency-1; j++){
+                    currChapterString += currChapters[j];
+                    currChapterString += " & ";
+                }
+                currChapterString += currChapters[currFrequency-1];
+                if(currChapterString.contains(" & ")) {
+                    Label currChapterLabel = new Label(CHAPTERCOL, i + 1, currChapterString, normalFormat);
+                    wordTrackSheet.addCell(currChapterLabel);
+                }
+                else{
+                    Number currChapterLabel = new Number(CHAPTERCOL, i + 1, Integer.parseInt(currChapterString), normalFormat);
+                    wordTrackSheet.addCell(currChapterLabel);
+                }
+                if(hardWords.contains(currWord.getWord())){
+                    Label currGroupLabel = new Label(GROUPCOL, i+1, "", hardFormat);
+                    wordTrackSheet.addCell(currGroupLabel);
+                }
+                else if(mediumWords.contains(currWord.getWord())){
+                    Label currGroupLabel = new Label(GROUPCOL, i+1, "", mediumFormat);
+                    wordTrackSheet.addCell(currGroupLabel);
+                }
+                else if(easyWords.contains(currWord.getWord())){
+                    Label currGroupLabel = new Label(GROUPCOL, i+1, "", easyFormat);
+                    wordTrackSheet.addCell(currGroupLabel);
+                }
+                Number currFrequencyLabel = new Number(APPEARANCENUMCOL, i+1, currFrequency, normalFormat);
+                wordTrackSheet.addCell(currFrequencyLabel);
+                Label currWordLabel = new Label(WORDSCOL, i+1, currWord.getWord(), normalFormat);
+                wordTrackSheet.addCell(currWordLabel);
+                Label currDefinitionLabel = new Label(DEFINITIONCOL, i+1, currWord.getDefinition(), definitionFormat);
+                wordTrackSheet.addCell(currDefinitionLabel);
+                Number currCorrectNum = new Number(CORRECTNUMCOL, i+1, currWord.getCorrectTimes(), normalFormat);
+                wordTrackSheet.addCell(currCorrectNum);
+                Number currWrongNum = new Number(WRONGNUMCOL, i+1, currWord.getWrongTimes(), normalFormat);
+                wordTrackSheet.addCell(currWrongNum);
+            }
+            outputFile.write();
+            outputFile.close();
+            writeCnt = 0;
+        }
+        catch (IOException e){
+            System.out.println("IO Exception.");
+        }
+        catch (WriteException e){
+            System.out.println("Write Exception");
+            writeCnt++;
+            if(writeCnt < 5){
+                initializeFormat();
+                outputRecords();
+            }
+        }
     }
 
 }

@@ -1,4 +1,7 @@
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class Words{
     private static ArrayList<String> wordsList = new ArrayList<>();
@@ -9,6 +12,14 @@ public class Words{
     private int[] appearChapters;
     private int familiarity;
 
+    public Words(Words other){
+        this.word = other.word;
+        this.definition = other.definition;
+        this.correctTimes = 0;
+        this.wrongTimes = 0;
+        this.appearChapters = other.appearChapters;
+        this.familiarity = 0;
+    }
     public Words(String word, String definitions, int chapter){
         this.word = word;
         if(wordsList.contains(word)){
@@ -22,12 +33,16 @@ public class Words{
         familiarity = correctTimes - wrongTimes;
         definitions = definitions.replace(". ",".");
         definitions = definitions.replace(".",". ");
-        definitions = definitions.replace("Ôºà", "(");
+        definitions = definitions.replace("£®", "(");
         definitions = definitions.replace(") ", ")");
         definitions = definitions.replace(")", ") ");
-        definitions = definitions.replace("Ôºâ", ") ");
-        if(definitions.contains("„Äê")){
-            definitions = definitions.substring(0, definitions.indexOf("„Äê"));
+        definitions = definitions.replace("£©", ") ");
+        String regex = "\\u3010\\u62d3\\u7814\\u6559\\u80b2\\uff1a";
+        Pattern pat = Pattern.compile(regex);
+        Matcher mat = pat.matcher(definitions);
+        if(mat.find()) {
+            definitions = mat.replaceAll("~");
+            definitions = definitions.substring(0, definitions.indexOf('~'));
         }
         this.definition = definitions;
     }
@@ -46,12 +61,12 @@ public class Words{
         this.familiarity = correctTimes - wrongTimes;
         definitions = definitions.replace(". ",".");
         definitions = definitions.replace(".",". ");
-        definitions = definitions.replace("Ôºà", "(");
+        definitions = definitions.replace("£®", "(");
         definitions = definitions.replace(") ", ")");
         definitions = definitions.replace(")", ") ");
-        definitions = definitions.replace("Ôºâ", ") ");
-        if(definitions.contains("„Äê")){
-            definitions = definitions.substring(0, definitions.indexOf("„Äê"));
+        definitions = definitions.replace("£©", ") ");
+        if(definitions.contains("°æ")){
+            definitions = definitions.substring(0, definitions.indexOf("°æ"));
         }
         this.definition = definitions;
     }
@@ -109,5 +124,25 @@ public class Words{
     public static String getWord(int idx){
         return wordsList.get(idx);
     }
+
+    private static Comparator<String> familiarComparator = new Comparator<String>(){
+        @Override
+        public int compare(String o1, String o2){
+            if(DataManagement.wordsDictionary.get(o1).getFamiliarity() < DataManagement.wordsDictionary.get(o2).getFamiliarity()) return -1;
+            else if(DataManagement.wordsDictionary.get(o1).getFamiliarity() == DataManagement.wordsDictionary.get(o2).getFamiliarity()) return 0;
+            return 1;
+        }
+    };
+    public static void familiaritySortWords(){
+        wordsList.sort(familiarComparator);
+    }
+
+//    public static Comparator<Words> ageComparator = new Comparator() {
+//        @Override
+//        public int compare(JobCandidate jc1, JobCandidate jc2) {
+//            return (jc2.getAge() < jc1.getAge() ? -1 :
+//                    (jc2.getAge() == jc1.getAge() ? 0 : 1));
+//        }
+//    };
 
 }
