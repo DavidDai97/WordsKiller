@@ -4,10 +4,10 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class LearnMode {
-    private static ArrayList<String> learningWords;
+    public static ArrayList<String> learningWords;
     public static Map<String, Words> learningDict = new HashMap<>();
     public static ArrayList<String> testWords;
-    private static int currIdx, testCorrect, testWrong;
+    public static int currIdx, testCorrect, testWrong;
 
     public static String learning(ArrayList<String> learningGroup){
         learningWords = new ArrayList<>(learningGroup);
@@ -45,6 +45,10 @@ public class LearnMode {
         }
         else if(currWords.getFamiliarity() <= -3 && !DataManagement.hardWords.contains(currWords.getWord())){
             DataManagement.hardWords.add(currWords.getWord());
+            DataManagement.wordsDictionary.get(currWords.getWord()).learned(false);
+        }
+        else if(currWords.getFamiliarity() == -6 || currWords.getFamiliarity() == -8 || currWords.getFamiliarity() == -10){
+            DataManagement.wordsDictionary.get(currWords.getWord()).learned(false);
         }
         if(learningWords.size() != 0) {
             currIdx = (int) Math.floor(Math.random() * learningWords.size());
@@ -53,6 +57,12 @@ public class LearnMode {
         JOptionPane.showMessageDialog(null, "Learning finished, will enter test mode after click OK.", "Message", JOptionPane.PLAIN_MESSAGE, null);
         learningWords = null;
         return null;
+    }
+    public static void saveLearningProgress(int[] chapters){
+        DataManagement.outputTempFile(0, chapters);
+    }
+    public static void saveTestingProgress(int[] chapters){
+        DataManagement.outputTempFile(1, chapters);
     }
     public static String testing(ArrayList<String> learningGroup){
         testCorrect = 0;

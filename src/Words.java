@@ -137,12 +137,4 @@ public class Words{
         wordsList.sort(familiarComparator);
     }
 
-//    public static Comparator<Words> ageComparator = new Comparator() {
-//        @Override
-//        public int compare(JobCandidate jc1, JobCandidate jc2) {
-//            return (jc2.getAge() < jc1.getAge() ? -1 :
-//                    (jc2.getAge() == jc1.getAge() ? 0 : 1));
-//        }
-//    };
-
 }

@@ -3,6 +3,9 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/src/DataManagement.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/ImportRunnable.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/LearnMode.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/LearnModeRunnable.java" charset="GBK" />
+    <file url="file://$PROJECT_DIR$/src/LearningModeWin.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/MainGUI.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/MyWin.java" charset="GBK" />
     <file url="file://$PROJECT_DIR$/src/Words.java" charset="GBK" />

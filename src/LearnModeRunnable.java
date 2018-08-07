@@ -49,10 +49,10 @@ public class LearnModeRunnable implements Runnable{
             }
         }
         if(mode == 0){
-            MainGUI.startLearn(learningWordsGroup);
+            MainGUI.startLearn(learningWordsGroup, chapters2Learn);
         }
         else if(mode == 1){
-            MainGUI.startTest(learningWordsGroup);
+            MainGUI.startTest(learningWordsGroup, chapters2Learn);
         }
 //        MainGUI.progressLabel.setText("Current File: 0/" + importFilesArr.length);
 //        MainGUI.processBar.setBackground(Color.pink);

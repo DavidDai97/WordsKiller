@@ -228,7 +228,7 @@ public class MainGUI {
         modeSelectionFrame.add(buttonPanel);
         modeSelectionFrame.setVisible(true);
     }
-    public static void startLearn(ArrayList<String> learningGroup){
+    public static void startLearn(ArrayList<String> learningGroup, int[] chapters2Learn){
         needRefresh = true;
         JFrame learnModeFrame = createFrame(450, 100, 400, 500, Color.lightGray,
                 "Learning Mode", new GridLayout(2, 1, 0, 20));
@@ -240,6 +240,7 @@ public class MainGUI {
                         JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.ERROR_MESSAGE,null,new String[]{"Save and Quit", "Direct Quit", "Cancel"},null);
                 if(option == 0){
                     // TODO save progress
+                    LearnMode.saveLearningProgress(chapters2Learn);
                     JOptionPane.showMessageDialog(null, "Progress saved", "Message", JOptionPane.PLAIN_MESSAGE, null);
                     learnModeFrame.dispose();
                 }
@@ -296,7 +297,7 @@ public class MainGUI {
                 spacePressedCnt++;
                 String nextWord = LearnMode.learnNext(true);
                 if(nextWord == null){
-                    startTest(LearnMode.testWords);
+                    startTest(LearnMode.testWords, chapters2Learn);
                     learnModeFrame.dispose();
                     return;
                 }
@@ -333,7 +334,7 @@ public class MainGUI {
                     spacePressedCnt++;
                     String nextWord = LearnMode.learnNext(true);
                     if(nextWord == null){
-                        startTest(LearnMode.testWords);
+                        startTest(LearnMode.testWords, chapters2Learn);
                         learnModeFrame.dispose();
                         return;
                     }
@@ -369,7 +370,7 @@ public class MainGUI {
                     spacePressedCnt++;
                     String nextWord = LearnMode.learnNext(true);
                     if(nextWord == null){
-                        startTest(LearnMode.testWords);
+                        startTest(LearnMode.testWords, chapters2Learn);
                         learnModeFrame.dispose();
                         return;
                     }
@@ -405,7 +406,7 @@ public class MainGUI {
                     spacePressedCnt++;
                     String nextWord = LearnMode.learnNext(true);
                     if(nextWord == null){
-                        startTest(LearnMode.testWords);
+                        startTest(LearnMode.testWords, chapters2Learn);
                         learnModeFrame.dispose();
                         return;
                     }
@@ -424,7 +425,7 @@ public class MainGUI {
         });
         learnModeFrame.setVisible(true);
     }
-    public static void startTest(ArrayList<String> learningGroup){
+    public static void startTest(ArrayList<String> learningGroup, int[] chapters2Learn){
         needRefresh = true;
         JFrame testModeFrame = createFrame(450, 100, 400, 500, Color.lightGray,
                 "Testing Mode", new GridLayout(2, 1, 0, 20));
@@ -436,6 +437,7 @@ public class MainGUI {
                         JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.ERROR_MESSAGE,null,new String[]{"Save and Quit", "Direct Quit", "Cancel"},null);
                 if(option == 0){
                     // TODO save progress
+                    LearnMode.saveTestingProgress(chapters2Learn);
                     JOptionPane.showMessageDialog(null, "Progress saved", "Message", JOptionPane.PLAIN_MESSAGE, null);
                     testModeFrame.dispose();
                 }

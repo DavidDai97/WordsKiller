@@ -196,7 +196,7 @@ public class DataManagement {
             wordTrackSheet.setColumnView(GROUPCOL, 3);
             Label chapterTitle = new Label(CHAPTERCOL, 0, "Chapter", titleFormat);
             wordTrackSheet.addCell(chapterTitle);
-            wordTrackSheet.setColumnView(CHAPTERCOL, 13);
+            wordTrackSheet.setColumnView(CHAPTERCOL, 20);
             Label appearanceTitle = new Label(APPEARANCENUMCOL, 0, "Frequency", titleFormat);
             wordTrackSheet.addCell(appearanceTitle);
             wordTrackSheet.setColumnView(APPEARANCENUMCOL, 13);
@@ -268,6 +268,47 @@ public class DataManagement {
                 initializeFormat();
                 outputRecords();
             }
+        }
+    }
+    public static void outputTempFile(int mode, int[] chapters){
+        String fileName;
+        ArrayList<String> data2Store;
+        if(mode == 0){
+            fileName = "../TempFiles/L_Chapter_";
+            data2Store = LearnMode.learningWords;
+        }
+        else if(mode == 1){
+            fileName = "../TempFiles/T_Chapter_";
+            data2Store = LearnMode.testWords;
+        }
+        else{
+            return;
+        }
+        for(int i = 0; i < chapters.length-1; i++){
+            fileName += ("" + chapters[i] + "_");
+        }
+        fileName += (chapters[chapters.length-1] + ".txt");
+        File file2Store=new File(fileName);
+        try {
+            FileOutputStream writer = new FileOutputStream(file2Store);
+            BufferedWriter bw = new BufferedWriter(new OutputStreamWriter(writer,"gbk"));
+            if(mode == 1){
+                bw.write("" + LearnMode.testCorrect + "&" + LearnMode.testWrong + "\r\n");
+                for(int i = 0; i < data2Store.size()-1; i++){
+                    bw.write("" + data2Store.get(i) + "&");
+                }
+                bw.write("" + data2Store.get(data2Store.size()-1));
+            }
+            else{
+                for(int i = 0; i < data2Store.size(); i++){
+                    bw.write("" + data2Store.get(i) + "&" + LearnMode.learningDict.get(data2Store.get(i)).getCorrectTimes() + "&" + LearnMode.learningDict.get(data2Store.get(i)).getWrongTimes() + "\r\n");
+                }
+            }
+            bw.close();
+            writer.close();
+        }
+        catch (IOException e){
+            System.out.println("Err: " + e.toString());
         }
     }
 
