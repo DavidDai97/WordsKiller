@@ -490,7 +490,7 @@ public class MainGUI {
         testProgress = new JProgressBar();
         testProgress.setStringPainted(true);
         testProgress.setMinimum(0);
-        testProgress.setMaximum(learningGroup.size());
+        testProgress.setMaximum(learningGroup.size() + (LearnMode.testCorrect+LearnMode.testWrong));
         testProgress.setBackground(Color.RED);
         testProgress.setValue(LearnMode.testCorrect+LearnMode.testWrong);
         testProgress.setFont(new Font("Arial", Font.BOLD, 22));
