@@ -218,6 +218,7 @@ public class MainGUI {
             @Override
             public void actionPerformed(ActionEvent e) {
                 // TODO Continue Learn Mode Func
+                continueFileSelection(0);
             }
         });
         JButton continueTestModeButton = new JButton("Continue Test");
@@ -256,6 +257,8 @@ public class MainGUI {
                 }
                 else if(option == 1){
                     learnModeFrame.dispose();
+                    LearnMode.learningWords = null;
+                    LearnMode.learningDict = null;
                 }
             }
         });
@@ -453,6 +456,7 @@ public class MainGUI {
                 }
                 else if(option == 1){
                     testModeFrame.dispose();
+                    LearnMode.testWords = null;
                 }
             }
         });
@@ -654,7 +658,7 @@ public class MainGUI {
     private static void startReview(){
 
     }
-    public static void continueFileSelection(int mode){
+    private static void continueFileSelection(int mode){
         getFileList("../TempFiles", "Chapter");
         char modeRep;
         if(mode == 0){
@@ -678,12 +682,6 @@ public class MainGUI {
         chaptersList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
         chaptersList.setVisibleRowCount(5);
         JScrollPane chaptersPane = new JScrollPane(chaptersList);
-        continueTestFrame.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowActivated(WindowEvent e){
-                System.out.println("Focused");
-            }
-        });
         JButton continueButton = new JButton("Start");
         continueButton.setFont(new Font("Arial", Font.BOLD, 18));
         continueButton.addActionListener(new ActionListener() {

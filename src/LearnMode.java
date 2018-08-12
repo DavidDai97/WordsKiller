@@ -13,6 +13,7 @@ public class LearnMode {
     public static String learning(ArrayList<String> learningGroup){
         learningWords = new ArrayList<>(learningGroup);
         testWords = new ArrayList<>();
+        learningDict = new HashMap<>();
         for(int i = 0; i < learningWords.size(); i++){
             learningDict.putIfAbsent(learningWords.get(i), new Words(DataManagement.wordsDictionary.get(learningWords.get(i))));
         }
@@ -62,6 +63,7 @@ public class LearnMode {
     public static void saveLearningProgress(int[] chapters){
         DataManagement.outputTempFile(0, chapters);
         learningWords = null;
+        learningDict = null;
     }
     public static void saveTestingProgress(int[] chapters){
         DataManagement.outputTempFile(1, chapters);
