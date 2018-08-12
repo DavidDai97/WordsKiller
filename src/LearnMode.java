@@ -61,9 +61,11 @@ public class LearnMode {
     }
     public static void saveLearningProgress(int[] chapters){
         DataManagement.outputTempFile(0, chapters);
+        learningWords = null;
     }
     public static void saveTestingProgress(int[] chapters){
         DataManagement.outputTempFile(1, chapters);
+        testWords = null;
     }
     public static String testing(ArrayList<String> learningGroup){
         if(!isContinue) {
