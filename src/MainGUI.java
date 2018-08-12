@@ -16,6 +16,8 @@ public class MainGUI {
     public static ArrayList<String> unfinishedChapters = new ArrayList<>();
     public static JLabel progressLabel, learntProgressLabel, testProgressLabel, testScoreLabel;
     public static  JProgressBar processBar, learntProgress, testProgress;
+    public static String lastModifiedFile;
+    private static long lastModifiedFileTime = 0;
     public static int spacePressedCnt = 0;
 
     private static boolean needRefresh = false;
@@ -56,7 +58,12 @@ public class MainGUI {
             int option = JOptionPane.showOptionDialog(null, "You have unfinished progress, do you want to continue","Unfinished",
                     JOptionPane.OK_CANCEL_OPTION, JOptionPane.WARNING_MESSAGE,null,new String[]{"Continue", "Later"},null);
             if(option == 0){
-                // TODO Directly start learning mode or test mode according to file name
+                if(lastModifiedFile.charAt(0) == 'T'){
+                    continueFileSelection(1);
+                }
+                else{
+                    continueFileSelection(0);
+                }
             }
         }
     }
@@ -72,6 +79,9 @@ public class MainGUI {
     private static void getFileList(String directory, String searchString){
         ArrayList<String> filesList;
         if(searchString.equals("Chapter")){
+            if(unfinishedChapters != null){
+                unfinishedChapters = new ArrayList<>();
+            }
             filesList = unfinishedChapters;
         }
         else{
@@ -83,6 +93,10 @@ public class MainGUI {
         for (int i = 0; i < files.length; i++) {
             if(files[i].getName().contains(searchString) && !filesList.contains(files[i].getName())){
                 filesList.add(files[i].getName());
+                if(searchString.equals("Chapter") && files[i].lastModified() > lastModifiedFileTime){
+                    lastModifiedFile = files[i].getName();
+                    lastModifiedFileTime = files[i].lastModified();
+                }
             }
         }
     }
@@ -132,7 +146,6 @@ public class MainGUI {
         importFrame.setVisible(true);
     }
     private static void modeSelection(){
-        getFileList("../TempFiles", "Chapter");
         JFrame modeSelectionFrame = createFrame(450, 100, 400, 350, Color.lightGray,
                 "Learning Mode Selection", new GridLayout(1, 2, 15, 0));
         modeSelectionFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
@@ -185,9 +198,6 @@ public class MainGUI {
             public void actionPerformed(ActionEvent e) {
                 List<String> chaptersLearn = chaptersList.getSelectedValuesList();
                 if(chaptersLearn.size() == 0) return;
-//                if(chaptersRecorded[0].contains("Hard") && !chaptersLearn.get(0).contains("Hard")){
-//                    chaptersLearn.add("Hard Words");
-//                }
                 String[] chapters = chaptersLearn.toArray(new String[0]);
                 LearnModeRunnable learnRunnable = new LearnModeRunnable(1, chapters);
                 Thread learnThread = new Thread(learnRunnable);
@@ -214,8 +224,8 @@ public class MainGUI {
         continueTestModeButton.setFont(new Font("Arial", Font.BOLD, 18));
         continueTestModeButton.addActionListener(new ActionListener() {
             @Override
-            public void actionPerformed(ActionEvent e) {
-                // TODO Continue Test Mode Func
+            public void actionPerformed(ActionEvent e){
+                continueFileSelection(1);
             }
         });
         JPanel buttonPanel = new JPanel(new GridLayout(5, 1, 0, 15));
@@ -468,9 +478,9 @@ public class MainGUI {
         bottomTopPanel.add(correctButton);
         bottomTopPanel.add(wrongButton);
         JPanel bottomBottomPanel = new JPanel(new GridLayout(3, 1, 0, 15));
-        testProgressLabel = new JLabel("Test progress: 0 tested, " + learningGroup.size() + " remains.");
+        testProgressLabel = new JLabel("Test progress: " + (LearnMode.testCorrect+LearnMode.testWrong) + " tested, " + learningGroup.size() + " remains.");
         testProgressLabel.setHorizontalAlignment(SwingConstants.CENTER);
-        testScoreLabel = new JLabel("Current score: 0 Correct, 0 Wrong.");
+        testScoreLabel = new JLabel("Current score: " + LearnMode.testCorrect + " Correct, " + LearnMode.testWrong + " Wrong.");
         testScoreLabel.setHorizontalAlignment(SwingConstants.CENTER);
         wrongButton.setFont(new Font("Arial", Font.BOLD, 22));
         testProgress = new JProgressBar();
@@ -478,7 +488,7 @@ public class MainGUI {
         testProgress.setMinimum(0);
         testProgress.setMaximum(learningGroup.size());
         testProgress.setBackground(Color.RED);
-        testProgress.setValue(0);
+        testProgress.setValue(LearnMode.testCorrect+LearnMode.testWrong);
         testProgress.setFont(new Font("Arial", Font.BOLD, 22));
         testProgress.setForeground(Color.GREEN);
         bottomBottomPanel.add(testScoreLabel);
@@ -643,6 +653,53 @@ public class MainGUI {
     }
     private static void startReview(){
 
+    }
+    public static void continueFileSelection(int mode){
+        getFileList("../TempFiles", "Chapter");
+        char modeRep;
+        if(mode == 0){
+            modeRep = 'L';
+        }
+        else{
+            modeRep = 'T';
+        }
+        JFrame continueTestFrame = createFrame(450, 100, 400, 150, Color.lightGray,
+                "Choose a file to continue test", new GridLayout(1, 2, 15, 0));
+        continueTestFrame.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
+        ((JPanel)continueTestFrame.getContentPane()).setBorder(BorderFactory.createEmptyBorder(25, 20, 25, 20));
+        ArrayList<String> chapters2ContinueList = new ArrayList<>();
+        for(int i = 0; i < unfinishedChapters.size(); i++){
+            if(unfinishedChapters.get(i).charAt(0) == modeRep){
+                chapters2ContinueList.add(unfinishedChapters.get(i));
+            }
+        }
+        String[] chapters2Continue = chapters2ContinueList.toArray(new String[0]);
+        JList chaptersList = new JList(chapters2Continue);
+        chaptersList.setSelectionMode(ListSelectionModel.SINGLE_INTERVAL_SELECTION);
+        chaptersList.setVisibleRowCount(5);
+        JScrollPane chaptersPane = new JScrollPane(chaptersList);
+        continueTestFrame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowActivated(WindowEvent e){
+                System.out.println("Focused");
+            }
+        });
+        JButton continueButton = new JButton("Start");
+        continueButton.setFont(new Font("Arial", Font.BOLD, 18));
+        continueButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e){
+                String file2Continue = (String)chaptersList.getSelectedValue();
+                if(file2Continue == null) return;
+                ContinueModeRunnable continueRunnable = new ContinueModeRunnable(mode, file2Continue);
+                Thread continueThread = new Thread(continueRunnable);
+                continueThread.start();
+                continueTestFrame.dispose();
+            }
+        });
+        continueTestFrame.add(chaptersPane);
+        continueTestFrame.add(continueButton);
+        continueTestFrame.setVisible(true);
     }
 
 }

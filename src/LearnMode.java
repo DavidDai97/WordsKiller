@@ -8,6 +8,7 @@ public class LearnMode {
     public static Map<String, Words> learningDict = new HashMap<>();
     public static ArrayList<String> testWords;
     public static int currIdx, testCorrect, testWrong;
+    public static boolean isContinue = false;
 
     public static String learning(ArrayList<String> learningGroup){
         learningWords = new ArrayList<>(learningGroup);
@@ -65,8 +66,13 @@ public class LearnMode {
         DataManagement.outputTempFile(1, chapters);
     }
     public static String testing(ArrayList<String> learningGroup){
-        testCorrect = 0;
-        testWrong = 0;
+        if(!isContinue) {
+            testCorrect = 0;
+            testWrong = 0;
+        }
+        else{
+            isContinue = false;
+        }
         if(learningGroup != null){
             testWords = new ArrayList<>(learningGroup);
         }

@@ -54,16 +54,6 @@ public class LearnModeRunnable implements Runnable{
         else if(mode == 1){
             MainGUI.startTest(learningWordsGroup, chapters2Learn);
         }
-//        MainGUI.progressLabel.setText("Current File: 0/" + importFilesArr.length);
-//        MainGUI.processBar.setBackground(Color.pink);
-//        MainGUI.processBar.setValue(0);
-//        DataManagement.importWords(importFilesArr);
-//        MainGUI.processBar.setValue(100);
-//        JOptionPane.showMessageDialog(null, "Process finished", "Progress",
-//                JOptionPane.WARNING_MESSAGE);
-//        MainGUI.processBar.setValue(0);
-//        MainGUI.processBar.setBackground(Color.BLACK);
-//        MainGUI.progressLabel.setText("Current File: 0/0");
     }
 
 }

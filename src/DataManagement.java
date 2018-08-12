@@ -40,13 +40,11 @@ public class DataManagement {
     public static void main(String[] args){
         test();
     }
-
     private static void test(){
         ArrayList<Integer> temp = new ArrayList< >();
         temp.add(10);
         System.out.println(temp.contains(10));
     }
-
     public static void readExistedWords(){
         File sourceFile = new File(wordTrackingPath);
         try {
@@ -93,7 +91,6 @@ public class DataManagement {
             System.out.println("Biff Exception.");
         }
     }
-
     private static void importWords(String importFileName, int totalRows){
         File importFile = new File("../OriginalLists/" + importFileName);
         int chapter = Integer.parseInt(importFileName.substring(13, importFileName.indexOf('.')));
@@ -127,7 +124,6 @@ public class DataManagement {
             System.out.println("Biff Exception.");
         }
     }
-
     public static void importWords(String[] importFiles){
         int totalRows = 0;
         for(int i = 0; i < importFiles.length; i++){
@@ -153,13 +149,11 @@ public class DataManagement {
             importWords(importFiles[i], totalRows);
         }
     }
-
     public static void clearRecord(){
         for(int i = 0; i < Words.wordsNum(); i++){
             wordsDictionary.get(Words.getWord(i)).clearRecord();
         }
     }
-
     public static void initializeFormat(){
         try{
             WritableFont titleFont = new WritableFont(WritableFont.ARIAL, 12, WritableFont.BOLD,false);
@@ -185,7 +179,6 @@ public class DataManagement {
             System.out.println("Err: 5, Initialize Error.");
         }
     }
-
     private static int writeCnt = 0;
     public static void outputRecords(){
         try{
@@ -310,6 +303,78 @@ public class DataManagement {
         catch (IOException e){
             System.out.println("Err: " + e.toString());
         }
+    }
+    public static void importTempFile(int mode, String fileName){
+        LearnMode.isContinue = true;
+        ArrayList<String> continueWordsList;
+        File importFile = new File("../TempFiles/" + fileName);
+        FileInputStream reader;
+        BufferedReader br;
+        try{
+            reader = new FileInputStream(importFile);
+            br = new BufferedReader(new InputStreamReader(reader, "gbk"));
+        }
+        catch(FileNotFoundException e){
+            System.out.println("Err 1: " + e.toString());
+            return;
+        }
+        catch (UnsupportedEncodingException e){
+            System.out.println("Err 2: " + e.toString());
+            return;
+        }
+        String currString;
+        if(mode == 0){
+            if(LearnMode.learningWords == null){
+                LearnMode.learningWords = new ArrayList<>();
+            }
+            continueWordsList = LearnMode.learningWords;
+            try {
+                while ((currString = br.readLine()) != null) {
+                    if(mode == 0) {
+                        String[] currStrings = currString.split("&");
+                        String currWord = currStrings[0];
+                        int currWordCorrect = Integer.parseInt(currStrings[1]);
+                        int currWordWrong = Integer.parseInt(currStrings[2]);
+                        Words currWords = new Words(wordsDictionary.get(currWord), currWordCorrect, currWordWrong);
+                        continueWordsList.add(currWord);
+                        LearnMode.learningDict.putIfAbsent(currWord, currWords);
+                    }
+                    else{
+
+                    }
+                }
+                br.close();
+                reader.close();
+            }
+            catch(IOException e){
+                System.out.println("Err: " + e.toString());
+            }
+        }
+        else{
+            if(LearnMode.testWords == null){
+                LearnMode.testWords = new ArrayList<>();
+            }
+            continueWordsList = LearnMode.testWords;
+            try{
+                currString = br.readLine();
+                String[] currStrings = currString.split("&");
+                int testCorrect = Integer.parseInt(currStrings[0]);
+                int testWrong = Integer.parseInt(currStrings[1]);
+                LearnMode.testCorrect = testCorrect;
+                LearnMode.testWrong = testWrong;
+                currString = br.readLine();
+                currStrings = currString.split("&");
+                for(int i = 0; i < currStrings.length; i++){
+                    continueWordsList.add(currStrings[i]);
+                }
+                br.close();
+                reader.close();
+            }
+            catch(IOException e){
+                System.out.println("Err: " + e.toString());
+            }
+        }
+        importFile.delete();
     }
 
 }

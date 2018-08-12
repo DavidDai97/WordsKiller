@@ -20,6 +20,14 @@ public class Words{
         this.appearChapters = other.appearChapters;
         this.familiarity = 0;
     }
+    public Words(Words other, int correctTimes, int wrongTimes){
+        this.word = other.word;
+        this.definition = other.definition;
+        this.correctTimes = correctTimes;
+        this.wrongTimes = wrongTimes;
+        this.appearChapters = other.appearChapters;
+        this.familiarity = correctTimes - wrongTimes;
+    }
     public Words(String word, String definitions, int chapter){
         this.word = word;
         if(wordsList.contains(word)){
